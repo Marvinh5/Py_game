@@ -13,7 +13,7 @@ game_over = False
 
 game_started = False
 
-screen = pygame.display.set_mode([game_constants.game_size.width, game_constants.game_size.height])
+screen = pygame.display.set_mode([game_constants.game_size.width, game_constants.game_size.height]) #, pygame.FULLSCREEN, 32
 
 reloj = pygame.time.Clock()
 
@@ -89,56 +89,102 @@ def handle_events(events):
             game_running = False
         if event.type == pygame.KEYDOWN:
             if event.key == pygame.K_RIGHT:
-                pads.x += 12 if pads.x + 12 <=  game_constants.game_size.width - game_constants.pad_size.width else 0
+                pads.x += pads.speed if pads.x + pads.speed <=  game_constants.game_size.width - game_constants.pad_size.width else 0
             if event.key == pygame.K_LEFT:
-                pads.x -= 12 if pads.x-12 >= 0 else 0
+                pads.x -= pads.speed if pads.x-pads.speed >= 0 else 0
             if event.key == pygame.K_SPACE:
                 game_started = True
 
 def handle_game_objects(balls, pads, brick_list):
     
     for rects in pygame.sprite.spritecollide(balls, brick_list, False):
-        rects.reduce_lives()
+        play_sound(game_constants.brick_hit_sound)
         if rects.rect.collidepoint(balls.rect.midbottom) or rects.rect.collidepoint(balls.rect.midtop):
             
             balls.direction.y *= -1
+            balls.speed += 0.09
+            pads.speed  += 0.09            
+            rects.reduce_lives()           
+            break
         
         if rects.rect.collidepoint(balls.rect.midleft) or rects.rect.collidepoint(balls.rect.midright):
-            
             balls.direction.x *= -1
-    
+            balls.speed += 0.09
+            pads.speed  += 0.09            
+            rects.reduce_lives()
+            
+            break
+        
+        if rects.rect.collidepoint(balls.rect.bottomleft) or rects.rect.collidepoint(balls.rect.bottomright):
+            balls.direction.x *= -1
+            balls.direction.y *= -1
+            balls.speed += 0.09
+            pads.speed  += 0.09            
+            rects.reduce_lives()
+            break
+        
     if balls.rect.colliderect(pads.rect):
+        play_sound(game_constants.pad_hit_sound)
+        balls.speed += 0.09
+        pads.speed  += 0.09        
         balls.direction.y *= -1
 
+    print len(brick_list)
     
     balls.move_x()
     
     balls.move_y()    
 
+
+def play_another_sound(sound):
+
+    if not pygame.mixer.get_busy():
+    
+        chanel = pygame.mixer.Sound(sound)
+        
+        chanel.play()
+    
+
+def play_sound(sound, volume = 1):
+
+    chanel = pygame.mixer.Sound(sound)
+ 
+    chanel.play()
+     
 def start_game():
     
     global game_running, game_started, game_over, balls, pads, reloj, screen
     
+    pygame.mixer.init()
     
     init_levels(0)
     
     balls = init_balls()
    
     pads  = init_pads()
-            
+
+    pygame.mixer.Sound(game_constants.background_sound)
+    
+    game_over_sound_played = False
+        
     while game_running:
         
         handle_events(pygame.event.get())
-        
         
         screen.fill((0, 0, 0))
         
         reloj.tick(40)        
         
-        if not balls.alive:
-            game_over = True
+        other_objects = pygame.sprite.Group()
         
         if not game_over:
+            
+            if len(brick_list) <= 0:
+                next_level_screen = pygame.sprite.Sprite()
+                next_level_screen.image.
+            
+            play_another_sound(game_constants.background_sound)
+            
             brick_list.draw(screen)
     
             ball_list.draw(screen)
@@ -151,11 +197,23 @@ def start_game():
             else:
                 handle_game_objects(balls, pads, brick_list)
         else:
-            print "Game Over"
+            if not game_over_sound_played:
+                play_sound(game_constants.game_over_sound)
+                game_over_sound_played = True
+                
+            gameover_screen = pygame.sprite.Sprite()
+            gameover_screen.image = pygame.image.load(game_constants.game_over_screen).convert()
+            gameover_screen.rect = gameover_screen.image.get_rect()
+            other_objects.add(gameover_screen)
+            
         
+            
+        if balls.is_dead():
+            game_over = True
             
         
         
+        other_objects.draw(screen)
         pygame.display.update()
         
 

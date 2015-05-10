@@ -6,7 +6,6 @@ class brick(game_object.game_object):
         super(brick, self).__init__(game, image)
         self.__lives = 2
         self.__image = image
-        
     
     def reduce_lives(self):
         
